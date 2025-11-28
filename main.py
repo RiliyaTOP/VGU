@@ -51,6 +51,17 @@ try:
 except Exception as e:
     text_bg_loaded = False
 
+try:
+    yes_photo = pygame.image.load("да.png").convert_alpha()
+    no_photo = pygame.image.load("нет.png").convert_alpha()
+
+    photo_width, photo_height = 200, 150
+    yes_photo = pygame.transform.smoothscale(yes_photo, (photo_width, photo_height))
+    no_photo = pygame.transform.smoothscale(no_photo, (photo_width, photo_height))
+    photos_loaded = True
+except Exception as e:
+    photos_loaded = False
+
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 LIGHT_WHITE = (200, 200, 200)
@@ -98,8 +109,49 @@ class TriangleButton:
         return self.rect.collidepoint(pos) and click
 
 
+class PhotoButton:
+    def __init__(self, x, y, photo, border_color=WHITE, border_width=3):
+        self.x = x
+        self.y = y
+        self.photo = photo
+        self.border_color = border_color
+        self.border_width = border_width
+        self.rect = self.photo.get_rect(topleft=(x, y))
+        self.is_hovered = False
+
+    def draw(self, surface):
+        surface.blit(self.photo, (self.x, self.y))
+
+    def check_hover(self, pos):
+        self.is_hovered = self.rect.collidepoint(pos)
+        return self.is_hovered
+
+    def is_clicked(self, pos, click):
+        return self.rect.collidepoint(pos) and click
+
+
+class ClickableImage:
+    def __init__(self, image, x, y):
+        self.image = image
+        self.x = x
+        self.y = y
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.is_hovered = False
+        self.clickable = True
+
+    def draw(self, surface):
+        surface.blit(self.image, (self.x, self.y))
+
+    def check_hover(self, pos):
+        self.is_hovered = self.rect.collidepoint(pos) and self.clickable
+        return self.is_hovered
+
+    def is_clicked(self, pos, click):
+        return self.rect.collidepoint(pos) and click and self.clickable
+
+
 class TextField:
-    def __init__(self, x, y, width, height, text, custom_font=None, text_offset=0):
+    def __init__(self, x, y, width, height, text, custom_font=None):
         self.x = x
         self.y = y
         self.width = width
@@ -108,12 +160,6 @@ class TextField:
         self.visible = False
         self.alpha = 0
         self.font = custom_font if custom_font else dialogue_font
-        self.start_y = HEIGHT + 100
-        self.current_y = HEIGHT + 100
-        self.target_y = y
-        self.animation_speed = 30
-        self.is_animating = True
-        self.text_offset = text_offset
 
     def show(self):
         self.visible = True
@@ -123,18 +169,10 @@ class TextField:
         self.alpha = 0
 
     def update(self):
-        if self.is_animating:
-            if self.current_y > self.target_y:
-                self.current_y -= self.animation_speed
-                if self.current_y <= self.target_y:
-                    self.current_y = self.target_y
-                    self.is_animating = False
-            return True
         if self.visible and self.alpha < 255:
             self.alpha += 10
             if self.alpha > 255:
                 self.alpha = 255
-        return False
 
     def draw(self, surface):
         if not self.visible:
@@ -154,12 +192,10 @@ class TextField:
         words = self.text.split(' ')
         current_line = []
 
-        max_text_width = self.width - 60
-
         for word in words:
             test_line = ' '.join(current_line + [word])
             test_width = self.font.size(test_line)[0]
-            if test_width > max_text_width:
+            if test_width > self.width - 40:
                 if current_line:
                     lines.append(' '.join(current_line))
                     current_line = [word]
@@ -167,14 +203,10 @@ class TextField:
                     while word:
                         for i in range(len(word), 0, -1):
                             part = word[:i]
-                            if self.font.size(part)[0] <= max_text_width:
+                            if self.font.size(part)[0] <= self.width - 40:
                                 lines.append(part)
                                 word = word[i:]
                                 break
-                        else:
-                            if word:
-                                lines.append(word[:1])
-                                word = word[1:]
             else:
                 current_line.append(word)
 
@@ -182,33 +214,27 @@ class TextField:
             lines.append(' '.join(current_line))
 
         line_height = self.font.get_linesize()
+        total_height = len(lines) * line_height
+        start_y = (self.height - total_height) // 2
 
-        vertical_padding = 20
-        max_lines = (self.height - vertical_padding * 2) // line_height
-
+        max_lines = (self.height - 20) // line_height
         if len(lines) > max_lines:
             lines = lines[:max_lines]
             if lines:
                 last_line = lines[-1]
-                while last_line and self.font.size(last_line + '...')[0] > max_text_width:
+                while last_line and self.font.size(last_line + '...')[0] > self.width - 40:
                     last_line = last_line[:-1]
-                if last_line:
-                    lines[-1] = last_line + '...'
-                else:
-                    lines = lines[:-1]
-
-        total_height = len(lines) * line_height
-        start_y = (self.height - total_height) // 2
+                lines[-1] = last_line + '...'
 
         for i, line in enumerate(lines):
             text_render = self.font.render(line, True, BLACK)
-            text_rect = text_render.get_rect(center=(self.width // 2 + self.text_offset, start_y + i * line_height))
+            text_rect = text_render.get_rect(center=(self.width // 2, start_y + i * line_height))
             text_surface.blit(text_render, text_rect)
 
         if self.alpha < 255:
             text_surface.set_alpha(self.alpha)
 
-        surface.blit(text_surface, (self.x, self.current_y))
+        surface.blit(text_surface, (self.x, self.y))
 
 
 class ChoiceButton:
@@ -222,7 +248,8 @@ class ChoiceButton:
     def draw(self, surface):
         color = self.hover_color if self.is_hovered else self.color
         pygame.draw.rect(surface, color, self.rect, border_radius=10)
-        pygame.draw.rect(surface, WHITE, self.rect, 2, border_radius=10)
+        # Убрана белая рамка вокруг кнопки
+        # pygame.draw.rect(surface, WHITE, self.rect, 2, border_radius=10)
 
         text_surf = font.render(self.text, True, BLACK)
         text_rect = text_surf.get_rect(center=self.rect.center)
@@ -279,7 +306,57 @@ def draw_title(surface):
     surface.blit(title_main, title_rect)
 
 
-def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file=None):
+def play_rewind_video(video_file):
+    if not os.path.exists(video_file):
+        return False
+
+    try:
+        cap = cv2.VideoCapture(video_file)
+
+        if not cap.isOpened():
+            return False
+
+        fps = cap.get(cv2.CAP_PROP_FPS)
+
+        clock = pygame.time.Clock()
+        playing = True
+
+        video_surface = pygame.Surface((WIDTH, HEIGHT))
+
+        while playing and cap.isOpened():
+            ret, frame = cap.read()
+
+            if not ret:
+                break
+
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
+            video_surface = pygame.surfarray.make_surface(frame_resized.swapaxes(0, 1))
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    playing = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE or event.key == pygame.K_SPACE:
+                        playing = False
+
+            screen.blit(video_surface, (0, 0))
+
+            skip_hint = small_font.render("Нажмите ПРОБЕЛ для пропуска", True, WHITE)
+            screen.blit(skip_hint, (WIDTH // 2 - skip_hint.get_width() // 2, HEIGHT - 40))
+
+            pygame.display.flip()
+            clock.tick(fps if fps > 0 else 30)
+
+        cap.release()
+        return True
+
+    except Exception as e:
+        return False
+
+
+def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file=None, fourth_video_file=None,
+                              fifth_video_file=None):
     if not os.path.exists(photo_file):
         return False
 
@@ -299,12 +376,25 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
         text_field = TextField(20, HEIGHT - 170, WIDTH - 40, 150,
                                "Вот это, голубчик, просто идеально. Эхх, молодость. Тогда молоко было вкуснее и корм слаще. Пойдем внутрь?")
 
-        yes_button = ChoiceButton(WIDTH // 2 - 150, HEIGHT // 2 + 100, 120, 50, "Да", GREEN)
-        no_button = ChoiceButton(WIDTH // 2 + 30, HEIGHT // 2 + 100, 120, 50, "Нет", RED)
+        if photos_loaded:
+            photo_width = yes_photo.get_width()
+            photo_height = yes_photo.get_height()
+            photo_spacing = 50
+
+            total_photos_width = photo_width * 2 + photo_spacing
+            start_x = (WIDTH - total_photos_width) // 2
+
+            yes_button = PhotoButton(start_x, HEIGHT // 2 + 80, yes_photo)
+            no_button = PhotoButton(start_x + photo_width + photo_spacing, HEIGHT // 2 + 80, no_photo)
+        else:
+            yes_button = ChoiceButton(WIDTH // 2 - 150, HEIGHT // 2 + 100, 120, 50, "Да", GREEN)
+            no_button = ChoiceButton(WIDTH // 2 + 30, HEIGHT // 2 + 100, 120, 50, "Нет", RED)
 
         text_shown = False
+        space_pressed = False
 
         while showing:
+            current_time = pygame.time.get_ticks()
             mouse_pos = pygame.mouse.get_pos()
             mouse_click = False
 
@@ -316,9 +406,14 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
                     if event.key == pygame.K_ESCAPE:
                         showing = False
                         return False
-                    elif event.key == pygame.K_SPACE:
+                    elif event.key == pygame.K_SPACE and not space_pressed:
+                        space_pressed = True
                         if next_video_file:
-                            return play_second_video(next_video_file, third_video_file)
+                            return play_second_video(next_video_file, third_video_file, fourth_video_file,
+                                                     fifth_video_file)
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_SPACE:
+                        space_pressed = False
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         mouse_click = True
@@ -342,18 +437,18 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
             text_field.update()
             text_field.draw(screen)
 
-            yes_button.check_hover(mouse_pos)
-            no_button.check_hover(mouse_pos)
-
-            yes_button.draw(screen)
-            no_button.draw(screen)
-
-            info_panel = pygame.Surface((WIDTH, 30), pygame.SRCALPHA)
-            info_panel.fill((0, 0, 0, 180))
-            screen.blit(info_panel, (0, HEIGHT - 30))
-
-            instruction = small_font.render("Нажмите ПРОБЕЛ для выбора ДА", True, WHITE)
-            screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, HEIGHT - 20))
+            if photos_loaded:
+                yes_button.check_hover(mouse_pos)
+                no_button.check_hover(mouse_pos)
+                yes_button.draw(screen)
+                no_button.draw(screen)
+            else:
+                yes_button.check_hover(mouse_pos)
+                no_button.check_hover(mouse_pos)
+                yes_button.draw(screen)
+                no_button.draw(screen)
+            space_hint = small_font.render("Нажмите ПРОБЕЛ для выбора ДА", True, WHITE)
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
 
             pygame.display.flip()
             clock.tick(60)
@@ -364,7 +459,8 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
         return False
 
 
-def play_first_video(video_file, photo_file=None, next_video_file=None, third_video_file=None):
+def play_first_video(video_file, photo_file=None, next_video_file=None, third_video_file=None, fourth_video_file=None,
+                     fifth_video_file=None):
     if not os.path.exists(video_file):
         return False
 
@@ -392,19 +488,11 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
         video_surface = pygame.Surface((WIDTH, HEIGHT))
 
         text_shown = False
+        space_pressed = False
 
         while playing and cap.isOpened():
-            ret, frame = cap.read()
-
-            if not ret:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                ret, frame = cap.read()
-                if not ret:
-                    break
-
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
-            video_surface = pygame.surfarray.make_surface(frame_resized.swapaxes(0, 1))
+            current_time = pygame.time.get_ticks()
+            mouse_pos = pygame.mouse.get_pos()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -412,10 +500,25 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         playing = False
-                    elif event.key == pygame.K_SPACE:
+                    elif event.key == pygame.K_SPACE and not space_pressed:
+                        space_pressed = True
                         if photo_file:
                             cap.release()
-                            return show_photo_for_10_seconds(photo_file, next_video_file, third_video_file)
+                            return show_photo_for_10_seconds(photo_file, next_video_file, third_video_file,
+                                                             fourth_video_file, fifth_video_file)
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_SPACE:
+                        space_pressed = False
+
+            ret, frame = cap.read()
+
+            if not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
+
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
+            video_surface = pygame.surfarray.make_surface(frame_resized.swapaxes(0, 1))
 
             screen.blit(video_surface, (0, 0))
 
@@ -430,12 +533,8 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
             text_field.update()
             text_field.draw(screen)
 
-            info_panel = pygame.Surface((WIDTH, 30), pygame.SRCALPHA)
-            info_panel.fill((0, 0, 0, 180))
-            screen.blit(info_panel, (0, HEIGHT - 30))
-
-            instruction = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
-            screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, HEIGHT - 20))
+            space_hint = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
 
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
@@ -447,7 +546,7 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
         return False
 
 
-def play_second_video(video_file, next_video_file=None):
+def play_second_video(video_file, next_video_file=None, fourth_video_file=None, fifth_video_file=None):
     if not os.path.exists(video_file):
         return False
 
@@ -465,28 +564,21 @@ def play_second_video(video_file, next_video_file=None):
         image_width, image_height = overlay_image.get_size()
         target_x = WIDTH - image_width - 20
         target_y = HEIGHT - image_height - 30
-
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
 
-        new_text = "                      1918‑й 1918‑с — университет переехал из Юрьева: 4 факультета, около 800 студентовас. Писали пером и чернилом, как художники. Кто ошибался — тушь летела по бумаге, как фейерверк! Зато уважение к письму было большое‑с. Было время, не то ч... Ой, ладно давай дальше"
-        text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 150, new_text, text_offset=20)
+        new_text = "                                 1980Ъ‑е — ВГУ выходит на новый уровень: новые факультеты, лаборатории, наука кипит. Студенты серьёзные, но иногда включали магнетофон                                        тайком — звучало как подпольный рок‑клуб! Деканы грозились, но коту нравилось мурчать от музыки. Времена моей молодости когда молоко было в разы вкуснее."
+
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 175, new_text)
 
         video_surface = pygame.Surface((WIDTH, HEIGHT))
 
         text_shown = False
+        space_pressed = False
 
         while playing and cap.isOpened():
-            ret, frame = cap.read()
-
-            if not ret:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                ret, frame = cap.read()
-                if not ret:
-                    break
-
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
-            video_surface = pygame.surfarray.make_surface(frame_resized.swapaxes(0, 1))
+            current_time = pygame.time.get_ticks()
+            mouse_pos = pygame.mouse.get_pos()
+            mouse_click = False
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -494,10 +586,24 @@ def play_second_video(video_file, next_video_file=None):
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         playing = False
-                    elif event.key == pygame.K_SPACE:
+                    elif event.key == pygame.K_SPACE and not space_pressed:
+                        space_pressed = True
                         if next_video_file:
                             cap.release()
-                            return play_third_video(next_video_file)
+                            return play_third_video(next_video_file, fourth_video_file, fifth_video_file)
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_SPACE:
+                        space_pressed = False
+
+            ret, frame = cap.read()
+
+            if not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
+
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
+            video_surface = pygame.surfarray.make_surface(frame_resized.swapaxes(0, 1))
 
             screen.blit(video_surface, (0, 0))
 
@@ -512,12 +618,8 @@ def play_second_video(video_file, next_video_file=None):
             text_field.update()
             text_field.draw(screen)
 
-            info_panel = pygame.Surface((WIDTH, 30), pygame.SRCALPHA)
-            info_panel.fill((0, 0, 0, 180))
-            screen.blit(info_panel, (0, HEIGHT - 30))
-
-            instruction = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
-            screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, HEIGHT - 20))
+            space_hint = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
 
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
@@ -529,7 +631,7 @@ def play_second_video(video_file, next_video_file=None):
         return False
 
 
-def play_third_video(video_file):
+def play_third_video(video_file, fourth_video_file=None, fifth_video_file=None):
     if not os.path.exists(video_file):
         return False
 
@@ -551,20 +653,21 @@ def play_third_video(video_file):
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
         animated_image.animation_speed = 50
 
-        third_text = "                         1980Ъ‑е — ВГУ выходит на новый уровень: новые факультеты, лаборатории, наука кипит. Студенты серьёзные, но иногда включали магнетофон                                тайком — звучало как подпольный рок‑клуб! Деканы грозились, но коту нравилось мурчать от музыки. Времена моей молодости когда молоко было в разы вкуснее."
-        text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 175, third_text, text_offset=20)
+        third_text = "                                     1980‑е — ВГУ выходит на новый уровень: новые факультеты, лаборатории, наука кипит. Студенты серьёзные, но иногда включали магнетофон                                      тайком — звучало как подпольный рок‑клуб! Деканы грозились, но коту нравилось мурчать от музыки. Времена моей молодости когда молоко было в разы вкуснее."
+
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 175, third_text)
 
         video_surface = pygame.Surface((WIDTH, HEIGHT))
         text_shown = False
+        space_pressed = False
 
         while playing and cap.isOpened():
+            current_time = pygame.time.get_ticks()
             ret, frame = cap.read()
 
             if not ret:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 100)
-                ret, frame = cap.read()
-                if not ret:
-                    break
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
 
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
@@ -574,8 +677,16 @@ def play_third_video(video_file):
                 if event.type == pygame.QUIT:
                     playing = False
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE or event.key == pygame.K_SPACE:
+                    if event.key == pygame.K_ESCAPE:
                         playing = False
+                    elif event.key == pygame.K_SPACE and not space_pressed:
+                        space_pressed = True
+                        if fourth_video_file:
+                            cap.release()
+                            return play_fourth_video(fourth_video_file, fifth_video_file)
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_SPACE:
+                        space_pressed = False
 
             screen.blit(video_surface, (0, 0))
 
@@ -590,12 +701,167 @@ def play_third_video(video_file):
             text_field.update()
             text_field.draw(screen)
 
-            info_panel = pygame.Surface((WIDTH, 30), pygame.SRCALPHA)
-            info_panel.fill((0, 0, 0, 180))
-            screen.blit(info_panel, (0, HEIGHT - 30))
+            space_hint = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
 
-            instruction = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
-            screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, HEIGHT - 20))
+            pygame.display.flip()
+            clock.tick(fps if fps > 0 else 30)
+
+        cap.release()
+        if fourth_video_file:
+            return play_fourth_video(fourth_video_file, fifth_video_file)
+        return True
+
+    except Exception as e:
+        return False
+
+
+def play_fourth_video(video_file, fifth_video_file=None):
+    if not os.path.exists(video_file):
+        return False
+
+    try:
+        cap = cv2.VideoCapture(video_file)
+
+        if not cap.isOpened():
+            return False
+
+        fps = cap.get(cv2.CAP_PROP_FPS)
+
+        clock = pygame.time.Clock()
+        playing = True
+
+        image_width, image_height = overlay_image.get_size()
+        target_x = WIDTH - image_width - 20
+        target_y = HEIGHT - image_height - 30
+
+        animated_image = AnimatedImage(overlay_image, target_x, target_y)
+
+        fourth_text = "                                     А сейчас, голубчик, послушай что я тебе скажу... Времена меняются, но ВГУ всегда остается местом, где рождаются великие умы. Цени каждый момент здесь!"
+
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 175, fourth_text)
+
+        video_surface = pygame.Surface((WIDTH, HEIGHT))
+        space_pressed = False
+
+        while playing and cap.isOpened():
+            current_time = pygame.time.get_ticks()
+            ret, frame = cap.read()
+
+            if not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
+
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
+            video_surface = pygame.surfarray.make_surface(frame_resized.swapaxes(0, 1))
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    playing = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        playing = False
+                    elif event.key == pygame.K_SPACE and not space_pressed:
+                        space_pressed = True
+                        if fifth_video_file:
+                            playing = False
+                            cap.release()
+                            return play_fifth_video(fifth_video_file)
+                        else:
+                            playing = False
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_SPACE:
+                        space_pressed = False
+
+            screen.blit(video_surface, (0, 0))
+
+            if image_loaded:
+                animated_image.update()
+                animated_image.draw(screen)
+
+            text_field.show()
+            text_field.update()
+            text_field.draw(screen)
+
+            space_hint = small_font.render("Нажмите ПРОБЕЛ для завершения", True, WHITE)
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
+
+            pygame.display.flip()
+            clock.tick(fps if fps > 0 else 30)
+
+        cap.release()
+        return True
+
+    except Exception as e:
+        return False
+
+
+def play_fifth_video(video_file):
+    if not os.path.exists(video_file):
+        return False
+
+    try:
+        cap = cv2.VideoCapture(video_file)
+
+        if not cap.isOpened():
+            return False
+
+        fps = cap.get(cv2.CAP_PROP_FPS)
+
+        clock = pygame.time.Clock()
+        playing = True
+
+        image_width, image_height = overlay_image.get_size()
+        target_x = WIDTH // 2 - image_width // 2
+        target_y = HEIGHT - image_height - 30
+
+        animated_image = AnimatedImage(overlay_image, target_x, target_y)
+
+        fifth_text = "                                Студенческий городок подключён к интернету, внедряются электронные дневники и расписания. Кафедры международного сотрудничества                           заключают обмен с зарубежными вузами. Кот замечает: лапки коротки, чтобы дотянуться до электронной зачётки, но дух науки живой‑с!"
+
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 175, fifth_text)
+
+        video_surface = pygame.Surface((WIDTH, HEIGHT))
+        space_pressed = False
+
+        while playing and cap.isOpened():
+            current_time = pygame.time.get_ticks()
+            ret, frame = cap.read()
+
+            if not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
+
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
+            video_surface = pygame.surfarray.make_surface(frame_resized.swapaxes(0, 1))
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    playing = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        playing = False
+                    elif event.key == pygame.K_SPACE and not space_pressed:
+                        space_pressed = True
+                        playing = False
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_SPACE:
+                        space_pressed = False
+
+            screen.blit(video_surface, (0, 0))
+
+            if image_loaded:
+                animated_image.update()
+                animated_image.draw(screen)
+
+            text_field.show()
+            text_field.update()
+            text_field.draw(screen)
+
+            space_hint = small_font.render("Нажмите ПРОБЕЛ для завершения", True, WHITE)
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
 
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
@@ -625,11 +891,17 @@ def main():
                 if event.button == 1:
                     mouse_click = True
                     if triangle_button.is_clicked(mouse_pos, mouse_click):
+                        rewind_video = "перемотка.mp4"
+                        if os.path.exists(rewind_video):
+                            play_rewind_video(rewind_video)
+
                         first_video = "grok-video-2c2186c2-d7e3-468a-9b63-c607bb5a83bc.mp4"
                         photo_file = "photo_5278349064456048963_y.jpg"
                         second_video = "grok-video-5e9e0399-857b-40cf-8d67-35818b6f128b.mp4"
                         third_video = "студенты.mp4"
-                        play_first_video(first_video, photo_file, second_video, third_video)
+                        fourth_video = "говорит.mp4"
+                        fifth_video = "стул.mp4"
+                        play_first_video(first_video, photo_file, second_video, third_video, fourth_video, fifth_video)
 
         triangle_button.check_hover(mouse_pos)
 
