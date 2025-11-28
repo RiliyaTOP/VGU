@@ -61,13 +61,14 @@ GOLD = (255, 215, 0)
 
 font = pygame.font.Font(None, 36)
 small_font = pygame.font.Font(None, 24)
-dialogue_font = pygame.font.Font(None, 26)
-first_video_font = pygame.font.Font(None, 22)
+dialogue_font = pygame.font.Font(None, 20)
+first_video_font = pygame.font.Font(None, 20)
 
 try:
     title_font = pygame.font.Font(None, 72)
 except:
     title_font = pygame.font.Font(None, 60)
+
 
 class TriangleButton:
     def __init__(self, x, y, size):
@@ -96,8 +97,9 @@ class TriangleButton:
     def is_clicked(self, pos, click):
         return self.rect.collidepoint(pos) and click
 
+
 class TextField:
-    def __init__(self, x, y, width, height, text, custom_font=None):
+    def __init__(self, x, y, width, height, text, custom_font=None, text_offset=0):
         self.x = x
         self.y = y
         self.width = width
@@ -106,6 +108,12 @@ class TextField:
         self.visible = False
         self.alpha = 0
         self.font = custom_font if custom_font else dialogue_font
+        self.start_y = HEIGHT + 100
+        self.current_y = HEIGHT + 100
+        self.target_y = y
+        self.animation_speed = 30
+        self.is_animating = True
+        self.text_offset = text_offset
 
     def show(self):
         self.visible = True
@@ -115,10 +123,18 @@ class TextField:
         self.alpha = 0
 
     def update(self):
+        if self.is_animating:
+            if self.current_y > self.target_y:
+                self.current_y -= self.animation_speed
+                if self.current_y <= self.target_y:
+                    self.current_y = self.target_y
+                    self.is_animating = False
+            return True
         if self.visible and self.alpha < 255:
             self.alpha += 10
             if self.alpha > 255:
                 self.alpha = 255
+        return False
 
     def draw(self, surface):
         if not self.visible:
@@ -130,18 +146,20 @@ class TextField:
             text_surface.blit(text_field_bg, (0, 0))
         else:
             pygame.draw.rect(text_surface, (40, 40, 80, self.alpha),
-                           (0, 0, self.width, self.height), border_radius=15)
+                             (0, 0, self.width, self.height), border_radius=15)
             pygame.draw.rect(text_surface, (255, 255, 255, self.alpha),
-                           (0, 0, self.width, self.height), 2, border_radius=15)
+                             (0, 0, self.width, self.height), 2, border_radius=15)
 
         lines = []
         words = self.text.split(' ')
         current_line = []
 
+        max_text_width = self.width - 60
+
         for word in words:
             test_line = ' '.join(current_line + [word])
             test_width = self.font.size(test_line)[0]
-            if test_width > self.width - 40:
+            if test_width > max_text_width:
                 if current_line:
                     lines.append(' '.join(current_line))
                     current_line = [word]
@@ -149,10 +167,14 @@ class TextField:
                     while word:
                         for i in range(len(word), 0, -1):
                             part = word[:i]
-                            if self.font.size(part)[0] <= self.width - 40:
+                            if self.font.size(part)[0] <= max_text_width:
                                 lines.append(part)
                                 word = word[i:]
                                 break
+                        else:
+                            if word:
+                                lines.append(word[:1])
+                                word = word[1:]
             else:
                 current_line.append(word)
 
@@ -160,27 +182,34 @@ class TextField:
             lines.append(' '.join(current_line))
 
         line_height = self.font.get_linesize()
-        total_height = len(lines) * line_height
-        start_y = (self.height - total_height) // 2
 
-        max_lines = (self.height - 20) // line_height
+        vertical_padding = 20
+        max_lines = (self.height - vertical_padding * 2) // line_height
+
         if len(lines) > max_lines:
             lines = lines[:max_lines]
             if lines:
                 last_line = lines[-1]
-                while last_line and self.font.size(last_line + '...')[0] > self.width - 40:
+                while last_line and self.font.size(last_line + '...')[0] > max_text_width:
                     last_line = last_line[:-1]
-                lines[-1] = last_line + '...'
+                if last_line:
+                    lines[-1] = last_line + '...'
+                else:
+                    lines = lines[:-1]
+
+        total_height = len(lines) * line_height
+        start_y = (self.height - total_height) // 2
 
         for i, line in enumerate(lines):
             text_render = self.font.render(line, True, BLACK)
-            text_rect = text_render.get_rect(center=(self.width // 2, start_y + i * line_height))
+            text_rect = text_render.get_rect(center=(self.width // 2 + self.text_offset, start_y + i * line_height))
             text_surface.blit(text_render, text_rect)
 
         if self.alpha < 255:
             text_surface.set_alpha(self.alpha)
 
-        surface.blit(text_surface, (self.x, self.y))
+        surface.blit(text_surface, (self.x, self.current_y))
+
 
 class ChoiceButton:
     def __init__(self, x, y, width, height, text, color):
@@ -204,6 +233,7 @@ class ChoiceButton:
 
     def is_clicked(self, pos, click):
         return self.rect.collidepoint(pos) and click
+
 
 class AnimatedImage:
     def __init__(self, image, target_x, target_y):
@@ -238,6 +268,7 @@ class AnimatedImage:
     def is_animation_complete(self):
         return self.animation_complete
 
+
 def draw_title(surface):
     title_text = "ВГУ назад в будущее"
     title_shadow = title_font.render(title_text, True, (0, 0, 0))
@@ -246,6 +277,7 @@ def draw_title(surface):
     shadow_rect = title_shadow.get_rect(center=(WIDTH // 2 + 3, 83))
     surface.blit(title_shadow, shadow_rect)
     surface.blit(title_main, title_rect)
+
 
 def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file=None):
     if not os.path.exists(photo_file):
@@ -267,8 +299,8 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
         text_field = TextField(20, HEIGHT - 170, WIDTH - 40, 150,
                                "Вот это, голубчик, просто идеально. Эхх, молодость. Тогда молоко было вкуснее и корм слаще. Пойдем внутрь?")
 
-        yes_button = ChoiceButton(WIDTH//2 - 150, HEIGHT//2 + 100, 120, 50, "Да", GREEN)
-        no_button = ChoiceButton(WIDTH//2 + 30, HEIGHT//2 + 100, 120, 50, "Нет", RED)
+        yes_button = ChoiceButton(WIDTH // 2 - 150, HEIGHT // 2 + 100, 120, 50, "Да", GREEN)
+        no_button = ChoiceButton(WIDTH // 2 + 30, HEIGHT // 2 + 100, 120, 50, "Нет", RED)
 
         photo_start_time = pygame.time.get_ticks()
         photo_duration = 10000
@@ -297,8 +329,8 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
                             if next_video_file:
                                 return play_second_video(next_video_file, third_video_file)
                         elif no_button.is_clicked(mouse_pos, mouse_click):
-                            if next_video_file:
-                                return play_second_video(next_video_file, third_video_file)
+                            showing = False
+                            return False
 
             screen.blit(photo, (0, 0))
 
@@ -319,6 +351,13 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
             yes_button.draw(screen)
             no_button.draw(screen)
 
+            info_panel = pygame.Surface((WIDTH, 30), pygame.SRCALPHA)
+            info_panel.fill((0, 0, 0, 180))
+            screen.blit(info_panel, (0, HEIGHT - 30))
+
+            instruction = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
+            screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, HEIGHT - 20))
+
             pygame.display.flip()
             clock.tick(60)
 
@@ -326,6 +365,7 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
 
     except Exception as e:
         return False
+
 
 def play_first_video(video_file, photo_file=None, next_video_file=None, third_video_file=None):
     if not os.path.exists(video_file):
@@ -391,8 +431,6 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
                         if photo_file:
                             cap.release()
                             return show_photo_for_10_seconds(photo_file, next_video_file, third_video_file)
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    playing = False
 
             screen.blit(video_surface, (0, 0))
 
@@ -407,6 +445,13 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
             text_field.update()
             text_field.draw(screen)
 
+            info_panel = pygame.Surface((WIDTH, 30), pygame.SRCALPHA)
+            info_panel.fill((0, 0, 0, 180))
+            screen.blit(info_panel, (0, HEIGHT - 30))
+
+            instruction = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
+            screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, HEIGHT - 20))
+
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
 
@@ -415,6 +460,7 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
 
     except Exception as e:
         return False
+
 
 def play_second_video(video_file, next_video_file=None):
     if not os.path.exists(video_file):
@@ -437,9 +483,8 @@ def play_second_video(video_file, next_video_file=None):
 
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
 
-        new_text = "1918‑й\n\n1918‑с — университет переехал из Юрьева: 4 факультета, около 800 студентовас. Писали пером и чернилом, как художники. Кто ошибался — тушь летела по бумаге, как фейерверк! Зато уважение к письму было большое‑с. Было время, не то ч... Ой, ладно давай дальше"
-
-        text_field = TextField(20, HEIGHT - 170, WIDTH - 40, 150, new_text)
+        new_text = "                      1918‑й 1918‑с — университет переехал из Юрьева: 4 факультета, около 800 студентовас. Писали пером и чернилом, как художники. Кто ошибался — тушь летела по бумаге, как фейерверк! Зато уважение к письму было большое‑с. Было время, не то ч... Ой, ладно давай дальше"
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 150, new_text, text_offset=20)
 
         video_surface = pygame.Surface((WIDTH, HEIGHT))
 
@@ -479,8 +524,6 @@ def play_second_video(video_file, next_video_file=None):
                         if next_video_file:
                             cap.release()
                             return play_third_video(next_video_file)
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    playing = False
 
             screen.blit(video_surface, (0, 0))
 
@@ -495,6 +538,13 @@ def play_second_video(video_file, next_video_file=None):
             text_field.update()
             text_field.draw(screen)
 
+            info_panel = pygame.Surface((WIDTH, 30), pygame.SRCALPHA)
+            info_panel.fill((0, 0, 0, 180))
+            screen.blit(info_panel, (0, HEIGHT - 30))
+
+            instruction = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
+            screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, HEIGHT - 20))
+
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
 
@@ -503,6 +553,7 @@ def play_second_video(video_file, next_video_file=None):
 
     except Exception as e:
         return False
+
 
 def play_third_video(video_file):
     if not os.path.exists(video_file):
@@ -526,9 +577,8 @@ def play_third_video(video_file):
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
         animated_image.animation_speed = 50
 
-        third_text = "1980‑е — ВГУ выходит на новый уровень: новые факультеты, лаборатории, наука кипит. Студенты серьёзные, но иногда включали магнетофон тайком — звучало как подпольный рок‑клуб! Деканы грозились, но коту нравилось мурчать от музыки. Времена моей молодости когда молоко было в разы вкуснее."
-
-        text_field = TextField(20, HEIGHT - 170, WIDTH - 40, 150, third_text)
+        third_text = "                         1980Ъ‑е — ВГУ выходит на новый уровень: новые факультеты, лаборатории, наука кипит. Студенты серьёзные, но иногда включали магнетофон                                тайком — звучало как подпольный рок‑клуб! Деканы грозились, но коту нравилось мурчать от музыки. Времена моей молодости когда молоко было в разы вкуснее."
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 175, third_text, text_offset=20)
 
         video_surface = pygame.Surface((WIDTH, HEIGHT))
         text_shown = False
@@ -549,8 +599,6 @@ def play_third_video(video_file):
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE or event.key == pygame.K_SPACE:
                         playing = False
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    playing = False
 
             screen.blit(video_surface, (0, 0))
 
@@ -565,6 +613,13 @@ def play_third_video(video_file):
             text_field.update()
             text_field.draw(screen)
 
+            info_panel = pygame.Surface((WIDTH, 30), pygame.SRCALPHA)
+            info_panel.fill((0, 0, 0, 180))
+            screen.blit(info_panel, (0, HEIGHT - 30))
+
+            instruction = small_font.render("Нажмите ПРОБЕЛ для выхода", True, WHITE)
+            screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, HEIGHT - 20))
+
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
 
@@ -574,7 +629,9 @@ def play_third_video(video_file):
     except Exception as e:
         return False
 
+
 triangle_button = TriangleButton(WIDTH // 2, HEIGHT // 2 + 220, 50)
+
 
 def main():
     clock = pygame.time.Clock()
@@ -605,6 +662,7 @@ def main():
 
         pygame.display.flip()
         clock.tick(60)
+
 
 if __name__ == "__main__":
     main()
