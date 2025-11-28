@@ -46,7 +46,7 @@ except Exception as e:
 
 try:
     text_field_bg = pygame.image.load("поле.png").convert_alpha()
-    text_field_bg = pygame.transform.scale(text_field_bg, (450, 180))
+    text_field_bg = pygame.transform.scale(text_field_bg, (WIDTH - 40, 150))
     text_bg_loaded = True
 except Exception as e:
     text_bg_loaded = False
@@ -153,7 +153,7 @@ class TextField:
 
         line_height = self.font.get_linesize()
         total_height = len(lines) * line_height
-        start_y = (self.height - total_height) // 2 + 15
+        start_y = (self.height - total_height) // 2
 
         for i, line in enumerate(lines):
             text_render = self.font.render(line, True, WHITE)
@@ -251,14 +251,11 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
 
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
 
-        text_field_x = target_x + image_width + 20
-        text_field_y = target_y
-
-        text_field = TextField(text_field_x, text_field_y, 450, 180,
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 40, 150,
                                "Вот это, голубчик, просто идеально. Эхх, молодость. Тогда молоко было вкуснее и корм слаще. Пойдем внутрь?")
 
-        yes_button = ChoiceButton(WIDTH // 2 - 150, HEIGHT // 2 + 100, 120, 50, "Да", GREEN)
-        no_button = ChoiceButton(WIDTH // 2 + 30, HEIGHT // 2 + 100, 120, 50, "Нет", RED)
+        yes_button = ChoiceButton(WIDTH//2 - 150, HEIGHT//2 + 100, 120, 50, "Да", GREEN)
+        no_button = ChoiceButton(WIDTH//2 + 30, HEIGHT//2 + 100, 120, 50, "Нет", RED)
 
         photo_start_time = pygame.time.get_ticks()
         photo_duration = 10000
@@ -296,9 +293,9 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
                 animated_image.update()
                 animated_image.draw(screen)
 
-                if animated_image.is_animation_complete() and not text_shown:
-                    text_field.show()
-                    text_shown = True
+            if not text_shown:
+                text_field.show()
+                text_shown = True
 
             text_field.update()
             text_field.draw(screen)
@@ -340,10 +337,7 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
 
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
 
-        text_field_x = target_x + image_width + 50
-        text_field_y = target_y + 50
-
-        text_field = TextField(text_field_x, text_field_y, 450, 180,
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 40, 150,
                                "Ну здравствуй, Голубчик. Не бойтесь, ты в безопасности. Пойдемс, кое-что покажу.",
                                custom_font=first_video_font)
 
@@ -351,6 +345,7 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
 
         video_start_time = pygame.time.get_ticks()
         video_duration = 10000
+        text_shown = False
 
         while playing and cap.isOpened():
             current_time = pygame.time.get_ticks()
@@ -393,8 +388,9 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
                 animated_image.update()
                 animated_image.draw(screen)
 
-                if animated_image.is_animation_complete():
-                    text_field.show()
+            if not text_shown:
+                text_field.show()
+                text_shown = True
 
             text_field.update()
             text_field.draw(screen)
@@ -430,20 +426,18 @@ def play_second_video(video_file, next_video_file=None):
 
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
 
-        text_field_x = target_x - 470
-        text_field_y = target_y + 120
-
         new_text = "1918‑й\n\n" \
                    "1918‑с — университет переехал из Юрьева: 4 факультета, около 800 студентовас.\n" \
                    "Писали пером и чернилом, как художники. Кто ошибался — тушь летела по бумаге, как фейерверк!\n" \
                    "Зато уважение к письму было большое‑с. Было время, не то ч... Ой, ладно давай дальше"
 
-        text_field = TextField(text_field_x, text_field_y, 450, 180, new_text)
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 40, 150, new_text)
 
         video_surface = pygame.Surface((WIDTH, HEIGHT))
 
         video_start_time = pygame.time.get_ticks()
         video_duration = 7000
+        text_shown = False
 
         while playing and cap.isOpened():
             current_time = pygame.time.get_ticks()
@@ -486,8 +480,9 @@ def play_second_video(video_file, next_video_file=None):
                 animated_image.update()
                 animated_image.draw(screen)
 
-                if animated_image.is_animation_complete():
-                    text_field.show()
+            if not text_shown:
+                text_field.show()
+                text_shown = True
 
             text_field.update()
             text_field.draw(screen)
@@ -524,14 +519,12 @@ def play_third_video(video_file):
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
         animated_image.animation_speed = 50
 
-        text_field_x = target_x + image_width + 20
-        text_field_y = target_y + 50
-
         third_text = "1980‑е — ВГУ выходит на новый уровень: новые факультеты, лаборатории, наука кипит. Студенты серьёзные, но иногда включали магнетофон тайком — звучало как подпольный рок‑клуб! Деканы грозились, но коту нравилось мурчать от музыки. Времена моей молодости когда молоко было в разы вкуснее."
 
-        text_field = TextField(text_field_x, text_field_y, 450, 180, third_text)
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 40, 180, third_text)
 
         video_surface = pygame.Surface((WIDTH, HEIGHT))
+        text_shown = False
 
         while playing and cap.isOpened():
             ret, frame = cap.read()
@@ -558,8 +551,9 @@ def play_third_video(video_file):
                 animated_image.update()
                 animated_image.draw(screen)
 
-                if animated_image.is_animation_complete():
-                    text_field.show()
+            if not text_shown:
+                text_field.show()
+                text_shown = True
 
             text_field.update()
             text_field.draw(screen)
