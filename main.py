@@ -69,7 +69,6 @@ try:
 except:
     title_font = pygame.font.Font(None, 60)
 
-
 class TriangleButton:
     def __init__(self, x, y, size):
         self.x = x
@@ -96,7 +95,6 @@ class TriangleButton:
 
     def is_clicked(self, pos, click):
         return self.rect.collidepoint(pos) and click
-
 
 class TextField:
     def __init__(self, x, y, width, height, text, custom_font=None):
@@ -132,9 +130,9 @@ class TextField:
             text_surface.blit(text_field_bg, (0, 0))
         else:
             pygame.draw.rect(text_surface, (40, 40, 80, self.alpha),
-                             (0, 0, self.width, self.height), border_radius=15)
+                           (0, 0, self.width, self.height), border_radius=15)
             pygame.draw.rect(text_surface, (255, 255, 255, self.alpha),
-                             (0, 0, self.width, self.height), 2, border_radius=15)
+                           (0, 0, self.width, self.height), 2, border_radius=15)
 
         lines = []
         words = self.text.split(' ')
@@ -143,11 +141,21 @@ class TextField:
         for word in words:
             test_line = ' '.join(current_line + [word])
             test_width = self.font.size(test_line)[0]
-            if test_width <= self.width - 40:
-                current_line.append(word)
+            if test_width > self.width - 40:
+                if current_line:
+                    lines.append(' '.join(current_line))
+                    current_line = [word]
+                else:
+                    while word:
+                        for i in range(len(word), 0, -1):
+                            part = word[:i]
+                            if self.font.size(part)[0] <= self.width - 40:
+                                lines.append(part)
+                                word = word[i:]
+                                break
             else:
-                lines.append(' '.join(current_line))
-                current_line = [word]
+                current_line.append(word)
+
         if current_line:
             lines.append(' '.join(current_line))
 
@@ -155,8 +163,17 @@ class TextField:
         total_height = len(lines) * line_height
         start_y = (self.height - total_height) // 2
 
+        max_lines = (self.height - 20) // line_height
+        if len(lines) > max_lines:
+            lines = lines[:max_lines]
+            if lines:
+                last_line = lines[-1]
+                while last_line and self.font.size(last_line + '...')[0] > self.width - 40:
+                    last_line = last_line[:-1]
+                lines[-1] = last_line + '...'
+
         for i, line in enumerate(lines):
-            text_render = self.font.render(line, True, WHITE)
+            text_render = self.font.render(line, True, BLACK)
             text_rect = text_render.get_rect(center=(self.width // 2, start_y + i * line_height))
             text_surface.blit(text_render, text_rect)
 
@@ -164,7 +181,6 @@ class TextField:
             text_surface.set_alpha(self.alpha)
 
         surface.blit(text_surface, (self.x, self.y))
-
 
 class ChoiceButton:
     def __init__(self, x, y, width, height, text, color):
@@ -179,7 +195,7 @@ class ChoiceButton:
         pygame.draw.rect(surface, color, self.rect, border_radius=10)
         pygame.draw.rect(surface, WHITE, self.rect, 2, border_radius=10)
 
-        text_surf = font.render(self.text, True, WHITE)
+        text_surf = font.render(self.text, True, BLACK)
         text_rect = text_surf.get_rect(center=self.rect.center)
         surface.blit(text_surf, text_rect)
 
@@ -188,7 +204,6 @@ class ChoiceButton:
 
     def is_clicked(self, pos, click):
         return self.rect.collidepoint(pos) and click
-
 
 class AnimatedImage:
     def __init__(self, image, target_x, target_y):
@@ -223,7 +238,6 @@ class AnimatedImage:
     def is_animation_complete(self):
         return self.animation_complete
 
-
 def draw_title(surface):
     title_text = "ВГУ назад в будущее"
     title_shadow = title_font.render(title_text, True, (0, 0, 0))
@@ -232,7 +246,6 @@ def draw_title(surface):
     shadow_rect = title_shadow.get_rect(center=(WIDTH // 2 + 3, 83))
     surface.blit(title_shadow, shadow_rect)
     surface.blit(title_main, title_rect)
-
 
 def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file=None):
     if not os.path.exists(photo_file):
@@ -284,8 +297,8 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
                             if next_video_file:
                                 return play_second_video(next_video_file, third_video_file)
                         elif no_button.is_clicked(mouse_pos, mouse_click):
-                            showing = False
-                            return False
+                            if next_video_file:
+                                return play_second_video(next_video_file, third_video_file)
 
             screen.blit(photo, (0, 0))
 
@@ -313,7 +326,6 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
 
     except Exception as e:
         return False
-
 
 def play_first_video(video_file, photo_file=None, next_video_file=None, third_video_file=None):
     if not os.path.exists(video_file):
@@ -404,7 +416,6 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
     except Exception as e:
         return False
 
-
 def play_second_video(video_file, next_video_file=None):
     if not os.path.exists(video_file):
         return False
@@ -426,10 +437,7 @@ def play_second_video(video_file, next_video_file=None):
 
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
 
-        new_text = "1918‑й\n\n" \
-                   "1918‑с — университет переехал из Юрьева: 4 факультета, около 800 студентовас.\n" \
-                   "Писали пером и чернилом, как художники. Кто ошибался — тушь летела по бумаге, как фейерверк!\n" \
-                   "Зато уважение к письму было большое‑с. Было время, не то ч... Ой, ладно давай дальше"
+        new_text = "1918‑й\n\n1918‑с — университет переехал из Юрьева: 4 факультета, около 800 студентовас. Писали пером и чернилом, как художники. Кто ошибался — тушь летела по бумаге, как фейерверк! Зато уважение к письму было большое‑с. Было время, не то ч... Ой, ладно давай дальше"
 
         text_field = TextField(20, HEIGHT - 170, WIDTH - 40, 150, new_text)
 
@@ -496,7 +504,6 @@ def play_second_video(video_file, next_video_file=None):
     except Exception as e:
         return False
 
-
 def play_third_video(video_file):
     if not os.path.exists(video_file):
         return False
@@ -521,7 +528,7 @@ def play_third_video(video_file):
 
         third_text = "1980‑е — ВГУ выходит на новый уровень: новые факультеты, лаборатории, наука кипит. Студенты серьёзные, но иногда включали магнетофон тайком — звучало как подпольный рок‑клуб! Деканы грозились, но коту нравилось мурчать от музыки. Времена моей молодости когда молоко было в разы вкуснее."
 
-        text_field = TextField(20, HEIGHT - 170, WIDTH - 40, 180, third_text)
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 40, 150, third_text)
 
         video_surface = pygame.Surface((WIDTH, HEIGHT))
         text_shown = False
@@ -567,9 +574,7 @@ def play_third_video(video_file):
     except Exception as e:
         return False
 
-
 triangle_button = TriangleButton(WIDTH // 2, HEIGHT // 2 + 220, 50)
-
 
 def main():
     clock = pygame.time.Clock()
@@ -600,7 +605,6 @@ def main():
 
         pygame.display.flip()
         clock.tick(60)
-
 
 if __name__ == "__main__":
     main()
