@@ -248,8 +248,6 @@ class ChoiceButton:
     def draw(self, surface):
         color = self.hover_color if self.is_hovered else self.color
         pygame.draw.rect(surface, color, self.rect, border_radius=10)
-        # Убрана белая рамка вокруг кнопки
-        # pygame.draw.rect(surface, WHITE, self.rect, 2, border_radius=10)
 
         text_surf = font.render(self.text, True, BLACK)
         text_rect = text_surf.get_rect(center=self.rect.center)
@@ -419,7 +417,8 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
                         mouse_click = True
                         if yes_button.is_clicked(mouse_pos, mouse_click):
                             if next_video_file:
-                                return play_second_video(next_video_file, third_video_file)
+                                return play_second_video(next_video_file, third_video_file, fourth_video_file,
+                                                     fifth_video_file)
                         elif no_button.is_clicked(mouse_pos, mouse_click):
                             showing = False
                             return False
