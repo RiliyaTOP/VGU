@@ -302,12 +302,9 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
         yes_button = ChoiceButton(WIDTH // 2 - 150, HEIGHT // 2 + 100, 120, 50, "Да", GREEN)
         no_button = ChoiceButton(WIDTH // 2 + 30, HEIGHT // 2 + 100, 120, 50, "Нет", RED)
 
-        photo_start_time = pygame.time.get_ticks()
-        photo_duration = 10000
         text_shown = False
 
         while showing:
-            current_time = pygame.time.get_ticks()
             mouse_pos = pygame.mouse.get_pos()
             mouse_click = False
 
@@ -378,7 +375,6 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
             return False
 
         fps = cap.get(cv2.CAP_PROP_FPS)
-        frame_delay = int(1000 / fps) if fps > 0 else 33
 
         clock = pygame.time.Clock()
         playing = True
@@ -395,20 +391,9 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
 
         video_surface = pygame.Surface((WIDTH, HEIGHT))
 
-        video_start_time = pygame.time.get_ticks()
-        video_duration = 10000
         text_shown = False
 
         while playing and cap.isOpened():
-            current_time = pygame.time.get_ticks()
-
-            if current_time - video_start_time >= video_duration:
-                if photo_file:
-                    cap.release()
-                    return show_photo_for_10_seconds(photo_file, next_video_file, third_video_file)
-                else:
-                    break
-
             ret, frame = cap.read()
 
             if not ret:
@@ -488,20 +473,9 @@ def play_second_video(video_file, next_video_file=None):
 
         video_surface = pygame.Surface((WIDTH, HEIGHT))
 
-        video_start_time = pygame.time.get_ticks()
-        video_duration = 7000
         text_shown = False
 
         while playing and cap.isOpened():
-            current_time = pygame.time.get_ticks()
-
-            if current_time - video_start_time >= video_duration:
-                if next_video_file:
-                    cap.release()
-                    return play_third_video(next_video_file)
-                else:
-                    break
-
             ret, frame = cap.read()
 
             if not ret:
@@ -587,7 +561,10 @@ def play_third_video(video_file):
             ret, frame = cap.read()
 
             if not ret:
-                break
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 100)
+                ret, frame = cap.read()
+                if not ret:
+                    break
 
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
