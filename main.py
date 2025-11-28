@@ -352,7 +352,7 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
             info_panel.fill((0, 0, 0, 180))
             screen.blit(info_panel, (0, HEIGHT - 30))
 
-            instruction = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
+            instruction = small_font.render("Нажмите ПРОБЕЛ для выбора ДА", True, WHITE)
             screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, HEIGHT - 20))
 
             pygame.display.flip()
@@ -594,7 +594,7 @@ def play_third_video(video_file):
             info_panel.fill((0, 0, 0, 180))
             screen.blit(info_panel, (0, HEIGHT - 30))
 
-            instruction = small_font.render("Нажмите ПРОБЕЛ для выхода", True, WHITE)
+            instruction = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
             screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, HEIGHT - 20))
 
             pygame.display.flip()
