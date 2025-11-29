@@ -399,7 +399,6 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
             total_photos_width = photo_width * 2 + photo_spacing
             start_x = (WIDTH - total_photos_width) // 2
 
-            # Используем изображения с тенью
             yes_button = PhotoButton(start_x, HEIGHT // 2 + 80, yes_photo_with_shadow)
             no_button = PhotoButton(start_x + photo_width + photo_spacing, HEIGHT // 2 + 80, no_photo_with_shadow)
         else:
@@ -899,6 +898,84 @@ def play_fifth_video(video_file):
                         space_pressed = True
                         playing = False
                         cap.release()
+                        return play_sixth_video("generated_video (3).mp4")
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_SPACE:
+                        space_pressed = False
+
+            screen.blit(video_surface, (0, 0))
+
+            if image_loaded:
+                animated_image.update()
+                animated_image.draw(screen)
+
+            text_field.show()
+            text_field.update()
+            text_field.draw(screen)
+
+            space_hint = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 30))
+
+            pygame.display.flip()
+            clock.tick(fps if fps > 0 else 30)
+
+        cap.release()
+        return True
+
+    except Exception as e:
+        return False
+
+
+def play_sixth_video(video_file):
+    if not os.path.exists(video_file):
+        return False
+
+    try:
+        cap = cv2.VideoCapture(video_file)
+
+        if not cap.isOpened():
+            return False
+
+        fps = cap.get(cv2.CAP_PROP_FPS)
+
+        clock = pygame.time.Clock()
+        playing = True
+
+        image_width, image_height = overlay_image.get_size()
+        target_x = WIDTH // 2 - image_width // 2
+        target_y = HEIGHT - image_height - 30
+
+        animated_image = AnimatedImage(overlay_image, target_x, target_y)
+
+        sixth_text = "      Вот и подошло наше путешествие к концу. Надеюсь, тебе понравилось! Теперь ты знаешь больше о ВГУ и можешь выбрать свой путь."
+
+        text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 175, sixth_text)
+
+        video_surface = pygame.Surface((WIDTH, HEIGHT))
+        space_pressed = False
+
+        while playing and cap.isOpened():
+            current_time = pygame.time.get_ticks()
+            ret, frame = cap.read()
+
+            if not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
+
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
+            video_surface = pygame.surfarray.make_surface(frame_resized.swapaxes(0, 1))
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    playing = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        playing = False
+                    elif event.key == pygame.K_SPACE and not space_pressed:
+                        space_pressed = True
+                        playing = False
+                        cap.release()
                         return show_final_scene()
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_SPACE:
@@ -1126,7 +1203,6 @@ def show_test_image(image_file):
         yes_buttons = []
         no_buttons = []
 
-        # СОЗДАЕМ 7 ПАР КНОПОК
         for i in range(len(questions)):
             if photos_loaded_in_test:
                 yes_button = PhotoButton(
@@ -1256,7 +1332,6 @@ def show_test_image(image_file):
                         no_buttons[i].draw(screen)
 
                 else:
-                    # Показываем результаты автоматически
                     title_text = "Результаты тестирования"
                     title_render = title_font.render(title_text, True, BLACK)
                     screen.blit(title_render,
@@ -1267,12 +1342,10 @@ def show_test_image(image_file):
                         result_render = result_font.render(result_text, True, BLACK)
                         screen.blit(result_render, (scroll_x + 50, scroll_y + 80))
 
-                        # Отображаем рекомендованные направления
                         for i, direction in enumerate(recommended_directions):
                             dir_render = result_font.render(f"• {direction}", True, BLACK)
                             screen.blit(dir_render, (scroll_x + 70, scroll_y + 110 + i * 30))
 
-                        # Советы по выбору факультета
                         advice_y = scroll_y + 110 + len(recommended_directions) * 30 + 20
                         advice_text = "Рекомендуем обратить внимание на соответствующие "
                         advice_render = result_font.render(advice_text, True, BLACK)
@@ -1295,7 +1368,6 @@ def show_test_image(image_file):
                         explore_render = result_font.render(explore_text, True, BLACK)
                         screen.blit(explore_render, (scroll_x + 50, scroll_y + 140))
 
-            # Инструкция
             if not show_results:
                 if not all_answered:
                     space_hint = small_font.render("Ответьте на все вопросы", True, WHITE)
@@ -1322,8 +1394,6 @@ triangle_button = TriangleButton(WIDTH // 2, HEIGHT // 2 + 220, 50)
 def main():
     clock = pygame.time.Clock()
     running = True
-    show_final_after_video = False
-
 
     pygame.mixer.init()
     pygame.mixer.music.load("background_music.mp3")
@@ -1351,7 +1421,6 @@ def main():
                         third_video = "студенты.mp4"
                         fourth_video = "говорит.mp4"
                         fifth_video = "стул.mp4"
-
                         play_first_video(first_video, photo_file, second_video, third_video, fourth_video, fifth_video)
 
         triangle_button.check_hover(mouse_pos)
@@ -1359,7 +1428,6 @@ def main():
         screen.blit(background, (0, 0))
         draw_title(screen)
         triangle_button.draw(screen)
-
 
         pygame.display.flip()
         clock.tick(60)
