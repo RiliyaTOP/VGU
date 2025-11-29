@@ -60,22 +60,18 @@ try:
     no_photo = pygame.transform.smoothscale(no_photo, (photo_width, photo_height))
 
 
-    # Создаем поверхности с тенью для кнопок
     def add_shadow(image, shadow_offset=5, shadow_color=(0, 0, 0, 128)):
         width, height = image.get_size()
         shadow_surface = pygame.Surface((width + shadow_offset, height + shadow_offset), pygame.SRCALPHA)
 
-        # Рисуем тень
         shadow_rect = pygame.Rect(shadow_offset, shadow_offset, width, height)
         pygame.draw.rect(shadow_surface, shadow_color, shadow_rect, border_radius=10)
 
-        # Рисуем основное изображение поверх тени
         shadow_surface.blit(image, (0, 0))
 
         return shadow_surface
 
 
-    # Применяем тень к кнопкам
     yes_photo_with_shadow = add_shadow(yes_photo)
     no_photo_with_shadow = add_shadow(no_photo)
 
@@ -209,7 +205,6 @@ class TextField:
             pygame.draw.rect(text_surface, (255, 255, 255, self.alpha),
                              (0, 0, self.width, self.height), 2, border_radius=15)
 
-        # ОБРАБАТЫВАЕМ ТЕКСТ С ПЕРЕНОСОМ СЛОВ В ПРЕДЕЛАХ ГРАНИЦ
         lines = []
         words = self.text.split(' ')
         current_line = []
@@ -242,14 +237,12 @@ class TextField:
         max_lines = (self.height - 20) // line_height
         if len(lines) > max_lines:
             lines = lines[:max_lines]
-            # Добавляем многоточие к последней строке если обрезали
             if lines:
                 last_line = lines[-1]
                 while last_line and self.font.size(last_line + '...')[0] > self.width - 40:
                     last_line = last_line[:-1]
                 lines[-1] = last_line + '...'
 
-        # РИСУЕМ СТРОКИ В ПРЕДЕЛАХ ГРАНИЦ ПОЛЯ
         for i, line in enumerate(lines):
             text_render = self.font.render(line, True, BLACK)
             text_rect = text_render.get_rect(center=(self.width // 2, start_y + i * line_height))
@@ -365,7 +358,7 @@ def play_rewind_video(video_file):
             screen.blit(video_surface, (0, 0))
 
             skip_hint = small_font.render("Нажмите ПРОБЕЛ для пропуска", True, WHITE)
-            screen.blit(skip_hint, (WIDTH // 2 - skip_hint.get_width() // 2, HEIGHT - 40))
+            screen.blit(skip_hint, (WIDTH // 2 - skip_hint.get_width() // 2, HEIGHT - 30))
 
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
@@ -472,7 +465,7 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
                 yes_button.draw(screen)
                 no_button.draw(screen)
             space_hint = small_font.render("Нажмите ПРОБЕЛ для выбора ДА", True, WHITE)
-            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 30))
 
             pygame.display.flip()
             clock.tick(60)
@@ -558,7 +551,7 @@ def play_first_video(video_file, photo_file=None, next_video_file=None, third_vi
             text_field.draw(screen)
 
             space_hint = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
-            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 30))
 
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
@@ -590,27 +583,22 @@ def play_second_video(video_file, next_video_file=None, fourth_video_file=None, 
         target_y = HEIGHT - image_height
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
 
-        # Загружаем и подготавливаем изображение студента
         try:
             student_image = pygame.image.load("студ.png").convert_alpha()
-            # Масштабируем изображение студента до нужного размера
-            student_width, student_height = 400, 600  # Размеры можно настроить
+            student_width, student_height = 400, 600
             student_image = pygame.transform.smoothscale(student_image, (student_width, student_height))
-            student_x = 50  # Позиция слева
-            student_y = HEIGHT - student_height - 1  # Позиция снизу
-            # Создаем кликабельное изображение студента
+            student_x = 50
+            student_y = HEIGHT - student_height - 1
             clickable_student = ClickableImage(student_image, student_x, student_y)
             student_loaded = True
         except Exception as e:
             print(f"Не удалось загрузить студ.png: {e}")
             student_loaded = False
 
-        # Создаем текстовое поле для студента - НИЖЕ И ПРАВЕЕ - увеличенный размер
         student_text = "                                А наши лаборатории оснащены по последнему слову техники, хоть и не всегда хватает импортных приборов, но мы сами мастерим, что нужно. В                                       общежитии жизнь кипит: комсомольские собрания, субботники, а по вечерам — песни под гитару или споры о марксизме-ленинизме. Конечно, сессия — это ад, зубрежка до утра, но зато после — чувство, что ты часть большой страны, которая строит коммунизм."
         student_text_field = TextField(40, 20, WIDTH - 180, 175, student_text)
         student_text_visible = False
 
-        # ТЕКСТОВОЕ ПОЛЕ НИЖЕ И ПРАВЕЕ - увеличенный размер
         new_text = "                                    1980‑е — ВГУ выходит на новый уровень: новые факультеты, лаборатории, наука кипит. Студенты серьёзные, но иногда включали магнетофон                                      тайком — звучало как подпольный рок‑клуб! Деканы грозились, но коту нравилось мурчать от музыки. Времена моей молодости когда молоко было в разы вкуснее."
         text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 175, new_text)
 
@@ -641,9 +629,8 @@ def play_second_video(video_file, next_video_file=None, fourth_video_file=None, 
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         mouse_click = True
-                        # Проверяем клик по студенту
                         if student_loaded and clickable_student.is_clicked(mouse_pos, mouse_click):
-                            student_text_visible = not student_text_visible  # Переключаем видимость текста
+                            student_text_visible = not student_text_visible
                             if student_text_visible:
                                 student_text_field.show()
                             else:
@@ -661,17 +648,14 @@ def play_second_video(video_file, next_video_file=None, fourth_video_file=None, 
 
             screen.blit(video_surface, (0, 0))
 
-            # Отображаем изображение студента
             if student_loaded:
                 clickable_student.check_hover(mouse_pos)
                 clickable_student.draw(screen)
 
-                # Если изображение наведено, показываем подсказку
                 if clickable_student.is_hovered:
                     hint_text = small_font.render("Нажмите для рассказа студента", True, WHITE)
                     screen.blit(hint_text, (clickable_student.x, clickable_student.y - 25))
 
-                # Отображаем текстовое поле студента если активно
                 student_text_field.update()
                 student_text_field.draw(screen)
 
@@ -687,7 +671,7 @@ def play_second_video(video_file, next_video_file=None, fourth_video_file=None, 
             text_field.draw(screen)
 
             space_hint = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
-            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 30))
 
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
@@ -721,7 +705,7 @@ def play_third_video(video_file, fourth_video_file=None, fifth_video_file=None):
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
         animated_image.animation_speed = 50
 
-        third_text = "                                     1980‑е — ВГУ выходит на новый уровень: новые факультеты, лаборатории, наука кипит. Студенты серьёзные, но иногда включали магнетофон                                      тайком — звучало как подпольный рок‑клуб! Деканы грозились, но коту нравилось мурчать от музыки. Времена моей молодости когда молоко было в разы вкуснее."
+        third_text = "                                     Университет имел около 35 кафедр, 80 лабораторий и бюджет в миллионы рублей, что позволяло готовить специалистов для промышленности и науки региона. Это время заложило основу для современного ВГУ как ведущего вуза Центрального Черноземья."
 
         text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 175, third_text)
 
@@ -770,7 +754,7 @@ def play_third_video(video_file, fourth_video_file=None, fifth_video_file=None):
             text_field.draw(screen)
 
             space_hint = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
-            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 30))
 
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
@@ -805,7 +789,7 @@ def play_fourth_video(video_file, fifth_video_file=None):
 
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
 
-        fourth_text = "                                     А сейчас, голубчик, послушай что я тебе скажу... Времена меняются, но ВГУ всегда остается местом, где рождаются великие умы. Цени каждый момент здесь!"
+        fourth_text = "                                     2010, голубчик, послушай что я тебе скажу... Времена меняются, но ВГУ всегда остается местом, где рождаются великие умы. Цени каждый момент здесь!"
 
         text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 175, fourth_text)
 
@@ -853,7 +837,7 @@ def play_fourth_video(video_file, fifth_video_file=None):
             text_field.draw(screen)
 
             space_hint = small_font.render("Нажмите ПРОБЕЛ для завершения", True, WHITE)
-            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 30))
 
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
@@ -915,7 +899,6 @@ def play_fifth_video(video_file):
                         space_pressed = True
                         playing = False
                         cap.release()
-                        # ПЕРЕХОДИМ К КАРТИНКЕ В КОНЦЕ
                         return show_final_scene()
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_SPACE:
@@ -932,7 +915,7 @@ def play_fifth_video(video_file):
             text_field.draw(screen)
 
             space_hint = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
-            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 30))
 
             pygame.display.flip()
             clock.tick(fps if fps > 0 else 30)
@@ -950,11 +933,6 @@ triangle_button = TriangleButton(WIDTH // 2, HEIGHT // 2 + 220, 50)
 def main():
     clock = pygame.time.Clock()
     running = True
-
-    pygame.mixer.init()
-    pygame.mixer.music.load("background_music.mp3")  # Укажите путь к файлу
-    pygame.mixer.music.set_volume(0.23)
-    pygame.mixer.music.play(-1)
 
     while running:
         mouse_pos = pygame.mouse.get_pos()
@@ -984,6 +962,404 @@ def main():
         screen.blit(background, (0, 0))
         draw_title(screen)
         triangle_button.draw(screen)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+
+def show_final_scene():
+    try:
+        background_image = pygame.image.load("тест.jpg").convert_alpha()
+        background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
+
+        final_image = pygame.image.load("b6cb3085-eb56-4a2a-a7cc-a024f1afa0fe (1) (1).png").convert_alpha()
+
+
+        original_width, original_height = final_image.get_size()
+
+        max_image_height = HEIGHT - 150
+        max_image_width = WIDTH // 2 - 40
+
+        image_ratio = original_width / original_height
+
+        if original_width > original_height:
+            new_width = max_image_width
+            new_height = int(new_width / image_ratio)
+        else:
+            new_height = max_image_height
+            new_width = int(new_height * image_ratio)
+
+        if new_height > max_image_height:
+            new_height = max_image_height
+            new_width = int(new_height * image_ratio)
+
+        if new_width > max_image_width:
+            new_width = max_image_width
+            new_height = int(new_width / image_ratio)
+
+        final_image = pygame.transform.smoothscale(final_image, (new_width * 2, new_height * 2))
+
+        image_x = 0
+        image_y = -200
+
+        final_text = "Так, а ты сам то, чем интересуешься?"
+        text_field = TextField(WIDTH // 2, HEIGHT // 2 - 140, WIDTH // 2 + 50, 180, final_text)
+        text_field.show()
+
+        clock = pygame.time.Clock()
+        showing = True
+        space_pressed = False
+
+        while showing:
+            mouse_pos = pygame.mouse.get_pos()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    showing = False
+                    return False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        showing = False
+                        return False
+                    elif event.key == pygame.K_SPACE and not space_pressed:
+                        space_pressed = True
+                        showing = False
+                        return show_test_image("тест.jpg")
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_SPACE:
+                        space_pressed = False
+
+            screen.blit(background_image, (0, 0))
+
+            screen.blit(final_image, (image_x, image_y))
+
+            text_field.update()
+            text_field.draw(screen)
+
+            space_hint = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 30))
+
+            pygame.display.flip()
+            clock.tick(60)
+
+        return True
+
+    except Exception as e:
+        print(f"Ошибка в финальной сцене: {e}")
+        return False
+
+
+def show_test_image(image_file):
+    if not os.path.exists(image_file):
+        return False
+
+    try:
+        test_image = pygame.image.load(image_file).convert_alpha()
+        test_image = pygame.transform.scale(test_image, (WIDTH, HEIGHT))
+
+        try:
+            scroll_image = pygame.image.load("свиток.png").convert_alpha()
+            scroll_width, scroll_height = 550, 750
+            scroll_image = pygame.transform.smoothscale(scroll_image, (scroll_width, scroll_height))
+            scroll_x = WIDTH - scroll_width - 20
+            scroll_y = HEIGHT // 2 - scroll_height // 2
+            scroll_loaded = True
+        except Exception as e:
+            print(f"Не удалось загрузить свиток.png: {e}")
+            scroll_loaded = False
+
+        try:
+            yes_img = pygame.image.load("да.png").convert_alpha()
+            no_img = pygame.image.load("нет.png").convert_alpha()
+
+            original_yes_width, original_yes_height = yes_img.get_size()
+            original_no_width, original_no_height = no_img.get_size()
+
+            target_height = 60
+            yes_ratio = original_yes_width / original_yes_height
+            no_ratio = original_no_width / original_no_height
+
+            button_width_yes = int(target_height * yes_ratio)
+            button_width_no = int(target_height * no_ratio)
+            button_height = target_height
+
+            yes_img = pygame.transform.smoothscale(yes_img, (button_width_yes, button_height))
+            no_img = pygame.transform.smoothscale(no_img, (button_width_no, button_height))
+
+            yes_img_without_shadow = yes_img
+            no_img_without_shadow = no_img
+
+            photos_loaded_in_test = True
+        except Exception as e:
+            print(f"Не удалось загрузить изображения кнопок: {e}")
+            photos_loaded_in_test = False
+        questions = [
+            "1. Нравится ли вам работать с цифрами и решать математические задачи?",
+            "2. Любите ли вы выступать перед аудиторией?",
+            "3. Интересуетесь ли вы компьютерными технологиями и программированием?",
+            "4. Нравится ли вам изучать иностранные языки и культуры?",
+            "5. Любите ли вы проводить эксперименты и научные исследования?",
+            "6. Интересуетесь ли вы политикой и общественными процессами?",
+            "7. Нравится ли вам работа с текстами и литературой?"
+        ]
+
+        directions = [
+            "Математика/Экономика",
+            "Педагогика/Политология",
+            "Информатика/Физика",
+            "Лингвистика/Международные отношения",
+            "Естественные науки/Химия",
+            "Юриспруденция/Политология",
+            "Филология/Журналистика"
+        ]
+
+        answers = [[0, 0] for _ in range(len(questions))]
+
+        button_spacing = 15
+
+        question_spacing = 90
+
+        max_button_width = max(button_width_yes, button_width_no)
+        base_x = scroll_x + scroll_width - (max_button_width * 2) - 80
+        base_y = scroll_y + 80
+
+        yes_buttons = []
+        no_buttons = []
+
+        # СОЗДАЕМ 7 ПАР КНОПОК
+        for i in range(len(questions)):
+            if photos_loaded_in_test:
+                yes_button = PhotoButton(
+                    base_x,
+                    base_y + i * question_spacing,
+                    yes_img_without_shadow
+                )
+                no_button = PhotoButton(
+                    base_x + max_button_width + 10,
+                    base_y + i * question_spacing,
+                    no_img_without_shadow
+                )
+            else:
+                yes_button = ChoiceButton(
+                    base_x,
+                    base_y + i * question_spacing,
+                    button_width_yes, button_height, "Да", GREEN
+                )
+                no_button = ChoiceButton(
+                    base_x + max_button_width + 10,
+                    base_y + i * question_spacing,
+                    button_width_no, button_height, "Нет", RED
+                )
+            yes_buttons.append(yes_button)
+            no_buttons.append(no_button)
+
+        clock = pygame.time.Clock()
+        showing = True
+        space_pressed = False
+        all_answered = False
+        show_results = False
+        recommended_directions = []
+
+        while showing:
+            mouse_pos = pygame.mouse.get_pos()
+            mouse_click = False
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    showing = False
+                    return False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        showing = False
+                        return False
+                    elif event.key == pygame.K_SPACE and not space_pressed:
+                        space_pressed = True
+                        if show_results:
+                            showing = False
+                            return True
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_SPACE:
+                        space_pressed = False
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        mouse_click = True
+                        for i in range(len(questions)):
+                            if yes_buttons[i].is_clicked(mouse_pos, mouse_click):
+                                answers[i] = [1, 0]
+                            elif no_buttons[i].is_clicked(mouse_pos, mouse_click):
+                                answers[i] = [0, 1]
+
+            all_answered = all(any(answer) for answer in answers)
+
+            if all_answered and not show_results:
+                show_results = True
+                recommended_directions = []
+                for i in range(len(questions)):
+                    if answers[i][0]:
+                        recommended_directions.append(directions[i])
+
+            screen.blit(test_image, (0, 0))
+
+            if scroll_loaded:
+                screen.blit(scroll_image, (scroll_x, scroll_y))
+
+                question_font = pygame.font.Font(None, 20)
+                title_font = pygame.font.Font(None, 28)
+                result_font = pygame.font.Font(None, 22)
+
+                if not show_results:
+                    title_text = "Определи своё направление"
+                    title_render = title_font.render(title_text, True, BLACK)
+                    screen.blit(title_render,
+                                (scroll_x + (scroll_width - title_render.get_width()) // 2, scroll_y + 10))
+
+                    for i, question in enumerate(questions):
+                        words = question.split(' ')
+                        lines = []
+                        current_line = []
+
+                        for word in words:
+                            test_line = ' '.join(current_line + [word])
+                            if question_font.size(test_line)[0] < scroll_width - 100:
+                                current_line.append(word)
+                            else:
+                                if current_line:
+                                    lines.append(' '.join(current_line))
+                                current_line = [word]
+
+                        if current_line:
+                            lines.append(' '.join(current_line))
+
+                        for j, line in enumerate(lines):
+                            question_render = question_font.render(line, True, BLACK)
+                            screen.blit(question_render, (scroll_x + 50,
+                                                          scroll_y + 60 + i * question_spacing + j * 20))
+
+                    for i in range(len(questions)):
+                        yes_buttons[i].check_hover(mouse_pos)
+                        no_buttons[i].check_hover(mouse_pos)
+
+                        if answers[i][0]:
+                            pygame.draw.rect(screen, (0, 255, 0),
+                                             (yes_buttons[i].x - 3, yes_buttons[i].y - 3,
+                                              yes_buttons[i].photo.get_width() + 6,
+                                              yes_buttons[i].photo.get_height() + 6),
+                                             3, border_radius=8)
+                        elif answers[i][1]:
+                            pygame.draw.rect(screen, (255, 0, 0),
+                                             (no_buttons[i].x - 3, no_buttons[i].y - 3,
+                                              no_buttons[i].photo.get_width() + 6,
+                                              no_buttons[i].photo.get_height() + 6),
+                                             3, border_radius=8)
+
+                        yes_buttons[i].draw(screen)
+                        no_buttons[i].draw(screen)
+
+                else:
+                    # Показываем результаты автоматически
+                    title_text = "Результаты тестирования"
+                    title_render = title_font.render(title_text, True, BLACK)
+                    screen.blit(title_render,
+                                (scroll_x + (scroll_width - title_render.get_width()) // 2, scroll_y + 20))
+
+                    if recommended_directions:
+                        result_text = "Вам подходят направления:"
+                        result_render = result_font.render(result_text, True, BLACK)
+                        screen.blit(result_render, (scroll_x + 50, scroll_y + 80))
+
+                        # Отображаем рекомендованные направления
+                        for i, direction in enumerate(recommended_directions):
+                            dir_render = result_font.render(f"• {direction}", True, BLACK)
+                            screen.blit(dir_render, (scroll_x + 70, scroll_y + 110 + i * 30))
+
+                        # Советы по выбору факультета
+                        advice_y = scroll_y + 110 + len(recommended_directions) * 30 + 20
+                        advice_text = "Рекомендуем обратить внимание на соответствующие "
+                        advice_render = result_font.render(advice_text, True, BLACK)
+                        screen.blit(advice_render, (scroll_x + 50, advice_y))
+
+                        advice_text1 = "факультеты ВГУ!"
+                        advice_render1 = result_font.render(advice_text1, True, BLACK)
+                        screen.blit(advice_render1, (scroll_x + 50, advice_y + 30))
+                    else:
+                        no_pref_text = "На основе ваших ответов сложно определить четкие"
+                        no_pref_render = result_font.render(no_pref_text, True, BLACK)
+                        screen.blit(no_pref_render, (scroll_x + 50, scroll_y + 80))
+
+
+                        no_pref_text = "предпочтения."
+                        no_pref_render = result_font.render(no_pref_text, True, BLACK)
+                        screen.blit(no_pref_render, (scroll_x + 50, scroll_y + 110))
+
+                        explore_text = "Рекомендуем изучить разные факультеты ВГУ!"
+                        explore_render = result_font.render(explore_text, True, BLACK)
+                        screen.blit(explore_render, (scroll_x + 50, scroll_y + 140))
+
+            # Инструкция
+            if not show_results:
+                if not all_answered:
+                    space_hint = small_font.render("Ответьте на все вопросы", True, WHITE)
+                else:
+                    space_hint = small_font.render("", True, WHITE)
+            else:
+                space_hint = small_font.render("Нажмите ПРОБЕЛ для завершения", True, WHITE)
+
+            screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 30))
+
+            pygame.display.flip()
+            clock.tick(60)
+
+        return True
+
+    except Exception as e:
+        print(f"Ошибка в show_test_image: {e}")
+        return False
+
+
+triangle_button = TriangleButton(WIDTH // 2, HEIGHT // 2 + 220, 50)
+
+
+def main():
+    clock = pygame.time.Clock()
+    running = True
+    show_final_after_video = False
+
+
+    pygame.mixer.init()
+    pygame.mixer.music.load("background_music.mp3")
+    pygame.mixer.music.set_volume(0.23)
+    pygame.mixer.music.play(-1)
+
+    while running:
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_click = False
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    mouse_click = True
+                    if triangle_button.is_clicked(mouse_pos, mouse_click):
+                        rewind_video = "перемотка.mp4"
+                        if os.path.exists(rewind_video):
+                            play_rewind_video(rewind_video)
+
+                        first_video = "grok-video-2c2186c2-d7e3-468a-9b63-c607bb5a83bc.mp4"
+                        photo_file = "photo_5278349064456048963_y.jpg"
+                        second_video = "grok-video-5e9e0399-857b-40cf-8d67-35818b6f128b.mp4"
+                        third_video = "студенты.mp4"
+                        fourth_video = "говорит.mp4"
+                        fifth_video = "стул.mp4"
+
+                        play_first_video(first_video, photo_file, second_video, third_video, fourth_video, fifth_video)
+
+        triangle_button.check_hover(mouse_pos)
+
+        screen.blit(background, (0, 0))
+        draw_title(screen)
+        triangle_button.draw(screen)
+
 
         pygame.display.flip()
         clock.tick(60)
