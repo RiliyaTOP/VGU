@@ -951,6 +951,11 @@ def main():
     clock = pygame.time.Clock()
     running = True
 
+    pygame.mixer.init()
+    pygame.mixer.music.load("background_music.mp3")  # Укажите путь к файлу
+    pygame.mixer.music.set_volume(0.23)
+    pygame.mixer.music.play(-1)
+
     while running:
         mouse_pos = pygame.mouse.get_pos()
         mouse_click = False
@@ -987,4 +992,5 @@ def main():
 if __name__ == "__main__":
     main()
     pygame.quit()
+    pygame.mixer.music.stop()
     sys.exit()
