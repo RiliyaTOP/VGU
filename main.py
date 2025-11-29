@@ -58,6 +58,27 @@ try:
     photo_width, photo_height = 200, 150
     yes_photo = pygame.transform.smoothscale(yes_photo, (photo_width, photo_height))
     no_photo = pygame.transform.smoothscale(no_photo, (photo_width, photo_height))
+
+
+    # Создаем поверхности с тенью для кнопок
+    def add_shadow(image, shadow_offset=5, shadow_color=(0, 0, 0, 128)):
+        width, height = image.get_size()
+        shadow_surface = pygame.Surface((width + shadow_offset, height + shadow_offset), pygame.SRCALPHA)
+
+        # Рисуем тень
+        shadow_rect = pygame.Rect(shadow_offset, shadow_offset, width, height)
+        pygame.draw.rect(shadow_surface, shadow_color, shadow_rect, border_radius=10)
+
+        # Рисуем основное изображение поверх тени
+        shadow_surface.blit(image, (0, 0))
+
+        return shadow_surface
+
+
+    # Применяем тень к кнопкам
+    yes_photo_with_shadow = add_shadow(yes_photo)
+    no_photo_with_shadow = add_shadow(no_photo)
+
     photos_loaded = True
 except Exception as e:
     photos_loaded = False
@@ -188,6 +209,7 @@ class TextField:
             pygame.draw.rect(text_surface, (255, 255, 255, self.alpha),
                              (0, 0, self.width, self.height), 2, border_radius=15)
 
+        # ОБРАБАТЫВАЕМ ТЕКСТ С ПЕРЕНОСОМ СЛОВ В ПРЕДЕЛАХ ГРАНИЦ
         lines = []
         words = self.text.split(' ')
         current_line = []
@@ -220,12 +242,14 @@ class TextField:
         max_lines = (self.height - 20) // line_height
         if len(lines) > max_lines:
             lines = lines[:max_lines]
+            # Добавляем многоточие к последней строке если обрезали
             if lines:
                 last_line = lines[-1]
                 while last_line and self.font.size(last_line + '...')[0] > self.width - 40:
                     last_line = last_line[:-1]
                 lines[-1] = last_line + '...'
 
+        # РИСУЕМ СТРОКИ В ПРЕДЕЛАХ ГРАНИЦ ПОЛЯ
         for i, line in enumerate(lines):
             text_render = self.font.render(line, True, BLACK)
             text_rect = text_render.get_rect(center=(self.width // 2, start_y + i * line_height))
@@ -375,15 +399,16 @@ def show_photo_for_10_seconds(photo_file, next_video_file=None, third_video_file
                                "Вот это, голубчик, просто идеально. Эхх, молодость. Тогда молоко было вкуснее и корм слаще. Пойдем внутрь?")
 
         if photos_loaded:
-            photo_width = yes_photo.get_width()
-            photo_height = yes_photo.get_height()
+            photo_width = yes_photo_with_shadow.get_width()
+            photo_height = yes_photo_with_shadow.get_height()
             photo_spacing = 50
 
             total_photos_width = photo_width * 2 + photo_spacing
             start_x = (WIDTH - total_photos_width) // 2
 
-            yes_button = PhotoButton(start_x, HEIGHT // 2 + 80, yes_photo)
-            no_button = PhotoButton(start_x + photo_width + photo_spacing, HEIGHT // 2 + 80, no_photo)
+            # Используем изображения с тенью
+            yes_button = PhotoButton(start_x, HEIGHT // 2 + 80, yes_photo_with_shadow)
+            no_button = PhotoButton(start_x + photo_width + photo_spacing, HEIGHT // 2 + 80, no_photo_with_shadow)
         else:
             yes_button = ChoiceButton(WIDTH // 2 - 150, HEIGHT // 2 + 100, 120, 50, "Да", GREEN)
             no_button = ChoiceButton(WIDTH // 2 + 30, HEIGHT // 2 + 100, 120, 50, "Нет", RED)
@@ -561,12 +586,32 @@ def play_second_video(video_file, next_video_file=None, fourth_video_file=None, 
         playing = True
 
         image_width, image_height = overlay_image.get_size()
-        target_x = WIDTH - image_width - 20
-        target_y = HEIGHT - image_height - 30
+        target_x = WIDTH - image_width
+        target_y = HEIGHT - image_height
         animated_image = AnimatedImage(overlay_image, target_x, target_y)
 
-        new_text = "                                 1980Ъ‑е — ВГУ выходит на новый уровень: новые факультеты, лаборатории, наука кипит. Студенты серьёзные, но иногда включали магнетофон                                        тайком — звучало как подпольный рок‑клуб! Деканы грозились, но коту нравилось мурчать от музыки. Времена моей молодости когда молоко было в разы вкуснее."
+        # Загружаем и подготавливаем изображение студента
+        try:
+            student_image = pygame.image.load("студ.png").convert_alpha()
+            # Масштабируем изображение студента до нужного размера
+            student_width, student_height = 400, 600  # Размеры можно настроить
+            student_image = pygame.transform.smoothscale(student_image, (student_width, student_height))
+            student_x = 50  # Позиция слева
+            student_y = HEIGHT - student_height - 1  # Позиция снизу
+            # Создаем кликабельное изображение студента
+            clickable_student = ClickableImage(student_image, student_x, student_y)
+            student_loaded = True
+        except Exception as e:
+            print(f"Не удалось загрузить студ.png: {e}")
+            student_loaded = False
 
+        # Создаем текстовое поле для студента - НИЖЕ И ПРАВЕЕ - увеличенный размер
+        student_text = "                                А наши лаборатории оснащены по последнему слову техники, хоть и не всегда хватает импортных приборов, но мы сами мастерим, что нужно. В                                       общежитии жизнь кипит: комсомольские собрания, субботники, а по вечерам — песни под гитару или споры о марксизме-ленинизме. Конечно, сессия — это ад, зубрежка до утра, но зато после — чувство, что ты часть большой страны, которая строит коммунизм."
+        student_text_field = TextField(40, 20, WIDTH - 180, 175, student_text)
+        student_text_visible = False
+
+        # ТЕКСТОВОЕ ПОЛЕ НИЖЕ И ПРАВЕЕ - увеличенный размер
+        new_text = "                                    1980‑е — ВГУ выходит на новый уровень: новые факультеты, лаборатории, наука кипит. Студенты серьёзные, но иногда включали магнетофон                                      тайком — звучало как подпольный рок‑клуб! Деканы грозились, но коту нравилось мурчать от музыки. Времена моей молодости когда молоко было в разы вкуснее."
         text_field = TextField(20, HEIGHT - 170, WIDTH - 180, 175, new_text)
 
         video_surface = pygame.Surface((WIDTH, HEIGHT))
@@ -593,6 +638,16 @@ def play_second_video(video_file, next_video_file=None, fourth_video_file=None, 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_SPACE:
                         space_pressed = False
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        mouse_click = True
+                        # Проверяем клик по студенту
+                        if student_loaded and clickable_student.is_clicked(mouse_pos, mouse_click):
+                            student_text_visible = not student_text_visible  # Переключаем видимость текста
+                            if student_text_visible:
+                                student_text_field.show()
+                            else:
+                                student_text_field.hide()
 
             ret, frame = cap.read()
 
@@ -605,6 +660,20 @@ def play_second_video(video_file, next_video_file=None, fourth_video_file=None, 
             video_surface = pygame.surfarray.make_surface(frame_resized.swapaxes(0, 1))
 
             screen.blit(video_surface, (0, 0))
+
+            # Отображаем изображение студента
+            if student_loaded:
+                clickable_student.check_hover(mouse_pos)
+                clickable_student.draw(screen)
+
+                # Если изображение наведено, показываем подсказку
+                if clickable_student.is_hovered:
+                    hint_text = small_font.render("Нажмите для рассказа студента", True, WHITE)
+                    screen.blit(hint_text, (clickable_student.x, clickable_student.y - 25))
+
+                # Отображаем текстовое поле студента если активно
+                student_text_field.update()
+                student_text_field.draw(screen)
 
             if image_loaded:
                 animated_image.update()
@@ -845,6 +914,9 @@ def play_fifth_video(video_file):
                     elif event.key == pygame.K_SPACE and not space_pressed:
                         space_pressed = True
                         playing = False
+                        cap.release()
+                        # ПЕРЕХОДИМ К КАРТИНКЕ В КОНЦЕ
+                        return show_final_scene()
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_SPACE:
                         space_pressed = False
@@ -859,7 +931,7 @@ def play_fifth_video(video_file):
             text_field.update()
             text_field.draw(screen)
 
-            space_hint = small_font.render("Нажмите ПРОБЕЛ для завершения", True, WHITE)
+            space_hint = small_font.render("Нажмите ПРОБЕЛ для продолжения", True, WHITE)
             screen.blit(space_hint, (WIDTH // 2 - space_hint.get_width() // 2, HEIGHT - 40))
 
             pygame.display.flip()
